@@ -143,6 +143,32 @@ pub fn snake_movement_system(
     }
 }
 
+pub fn spawn_snake(
+    commands: &mut Commands,
+    head_material: Handle<ColorMaterial>,
+    segment_material: Handle<ColorMaterial>,
+    position: Position,
+) {
+    spawn_segment(
+        commands,
+        segment_material,
+        Position {
+            x: position.x,
+            y: position.y - 1,
+        },
+    );
+    let first_segment = commands.current_entity().unwrap();
+    commands
+        .spawn(SpriteComponents {
+            material: head_material,
+            sprite: Sprite::new(Vec2::new(10.0, 10.0)),
+            ..Default::default()
+        })
+        .with(SnakeHead::new(first_segment))
+        .with(position)
+        .with(HeadSize::square(0.8));
+}
+
 pub fn spawn_segment(commands: &mut Commands, material: Handle<ColorMaterial>, position: Position) {
     commands
         .spawn(SpriteComponents {

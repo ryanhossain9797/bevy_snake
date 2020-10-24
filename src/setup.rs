@@ -17,21 +17,12 @@ pub fn game_setup(
     snake_head_material: Res<SnakeHeadMaterial>,
     snake_segment_material: Res<SnakeSegmentMaterial>,
 ) {
-    spawn_segment(
+    spawn_snake(
         &mut commands,
+        snake_head_material.handle(),
         snake_segment_material.handle(),
-        Position { x: 10, y: 9 },
+        Position { x: 10, y: 10 },
     );
-    let first_segment = commands.current_entity().unwrap();
-    commands
-        .spawn(SpriteComponents {
-            material: snake_head_material.handle(),
-            sprite: Sprite::new(Vec2::new(10.0, 10.0)),
-            ..Default::default()
-        })
-        .with(SnakeHead::new(first_segment))
-        .with(Position { x: 10, y: 10 })
-        .with(HeadSize::square(0.8));
 }
 
 pub fn size_scaling(windows: Res<Windows>, mut q: Query<(&HeadSize, &mut Sprite)>) {

@@ -19,6 +19,7 @@ fn main() {
             ..Default::default()         // <--
         })
         .add_resource(ClearColor(Color::rgb(0.03, 0.03, 0.03)))
+        .add_resource(SnakeMoveTimer::default())
         .add_startup_system(setup.system())
         .add_startup_stage("game_setup")
         .add_startup_system_to_stage("game_setup", game_setup.system())

@@ -1,6 +1,28 @@
 use bevy::prelude::*;
+use std::time::Duration;
 
-pub struct SnakeHead;
+pub struct SnakeMoveTimer(Timer);
+
+impl SnakeMoveTimer {
+    pub fn default() -> Self {
+        Self(Timer::new(Duration::from_millis(150), true))
+    }
+}
+
+pub struct SnakeHead {
+    pub direction: Direction,
+    pub next_segment: Entity,
+}
+
+impl SnakeHead {
+    pub fn new(first_segment: Entity) -> Self {
+        Self {
+            direction: Direction::Up,
+            next_segment: first_segment,
+        }
+    }
+}
+
 pub struct SnakeHeadMaterial(Handle<ColorMaterial>);
 
 impl SnakeHeadMaterial {
@@ -9,6 +31,41 @@ impl SnakeHeadMaterial {
     }
     pub fn handle(&self) -> Handle<ColorMaterial> {
         self.0
+    }
+}
+
+#[derive(Default)]
+pub struct SnakeSegment {
+    next_segment: Option<Entity>,
+}
+
+pub struct SnakeSegmentMaterial(Handle<ColorMaterial>);
+
+impl SnakeSegmentMaterial {
+    pub fn new(handle: Handle<ColorMaterial>) -> Self {
+        Self(handle)
+    }
+    pub fn handle(&self) -> Handle<ColorMaterial> {
+        self.0
+    }
+}
+
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum Direction {
+    Left,
+    Up,
+    Right,
+    Down,
+}
+
+impl Direction {
+    pub fn opposite(&self) -> Self {
+        match self {
+            Self::Left => Self::Right,
+            Self::Right => Self::Left,
+            Self::Up => Self::Down,
+            Self::Down => Self::Up,
+        }
     }
 }
 
@@ -34,21 +91,65 @@ impl HeadSize {
 
 //Transform component comes from SpriteComponents
 pub fn snake_movement_system(
+    time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
-    mut snake_heads: Query<(&SnakeHead, &mut Position)>,
+    mut snake_timer: ResMut<SnakeMoveTimer>,
+    mut snake_heads: Query<(&mut SnakeHead, &mut Position)>,
+    segments: Query<&mut SnakeSegment>,
+    positions: Query<&mut Position>,
 ) {
-    for (_, mut pos) in &mut snake_heads.iter() {
+    snake_timer.0.tick(time.delta_seconds);
+    for (mut head, mut head_pos) in &mut snake_heads.iter() {
+        let mut direction = head.direction;
+
         if keyboard_input.pressed(KeyCode::Left) {
-            pos.x -= 1;
+            direction = Direction::Left;
         }
         if keyboard_input.pressed(KeyCode::Right) {
-            pos.x += 1;
+            direction = Direction::Right;
         }
         if keyboard_input.pressed(KeyCode::Down) {
-            pos.y -= 1;
+            direction = Direction::Down;
         }
         if keyboard_input.pressed(KeyCode::Up) {
-            pos.y += 1;
+            direction = Direction::Up;
+        }
+
+        if direction != head.direction.opposite() {
+            head.direction = direction;
+        }
+
+        if snake_timer.0.finished {
+            let mut last_position = *head_pos;
+            let mut segment_entity = head.next_segment;
+            loop {
+                let segment = segments.get::<SnakeSegment>(segment_entity).unwrap();
+                let mut segment_position = positions.get_mut::<Position>(segment_entity).unwrap();
+                std::mem::swap(&mut last_position, &mut *segment_position);
+                if let Some(n) = segment.next_segment {
+                    segment_entity = n;
+                } else {
+                    break;
+                }
+            }
+
+            match head.direction {
+                Direction::Left => head_pos.x -= 1,
+                Direction::Right => head_pos.x += 1,
+                Direction::Up => head_pos.y += 1,
+                Direction::Down => head_pos.y -= 1,
+            }
         }
     }
+}
+
+pub fn spawn_segment(commands: &mut Commands, material: Handle<ColorMaterial>, position: Position) {
+    commands
+        .spawn(SpriteComponents {
+            material,
+            ..Default::default()
+        })
+        .with(SnakeSegment { next_segment: None })
+        .with(position)
+        .with(HeadSize::square(0.65));
 }

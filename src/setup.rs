@@ -7,16 +7,29 @@ pub fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>
     commands.insert_resource(SnakeHeadMaterial::new(
         materials.add(Color::rgb(0.7, 0.7, 0.7).into()),
     ));
+    commands.insert_resource(SnakeSegmentMaterial::new(
+        materials.add(Color::rgb(0.3, 0.3, 0.3).into()),
+    ));
 }
 
-pub fn game_setup(mut commands: Commands, snake_head_material: Res<SnakeHeadMaterial>) {
+pub fn game_setup(
+    mut commands: Commands,
+    snake_head_material: Res<SnakeHeadMaterial>,
+    snake_segment_material: Res<SnakeSegmentMaterial>,
+) {
+    spawn_segment(
+        &mut commands,
+        snake_segment_material.handle(),
+        Position { x: 10, y: 9 },
+    );
+    let first_segment = commands.current_entity().unwrap();
     commands
         .spawn(SpriteComponents {
             material: snake_head_material.handle(),
             sprite: Sprite::new(Vec2::new(10.0, 10.0)),
             ..Default::default()
         })
-        .with(SnakeHead)
+        .with(SnakeHead::new(first_segment))
         .with(Position { x: 10, y: 10 })
         .with(HeadSize::square(0.8));
 }

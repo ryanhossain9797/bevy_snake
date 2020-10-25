@@ -1,3 +1,4 @@
+use super::*;
 use bevy::prelude::*;
 use std::time::Duration;
 
@@ -91,12 +92,15 @@ impl HeadSize {
 
 //Transform component comes from SpriteComponents
 pub fn snake_movement_system(
+    mut commands: Commands, // to despawn food
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
+    mut segment_material: Res<SnakeSegmentMaterial>, // to spawn a new segment
     mut snake_timer: ResMut<SnakeMoveTimer>,
     mut snake_heads: Query<(&mut SnakeHead, &mut Position)>,
     segments: Query<&mut SnakeSegment>,
     positions: Query<&mut Position>,
+    mut food_positions: Query<(Entity, &Food, &Position)>, // <-- To check when the snake head has collided w/ food
 ) {
     snake_timer.0.tick(time.delta_seconds);
     for (mut head, mut head_pos) in &mut snake_heads.iter() {
@@ -122,6 +126,7 @@ pub fn snake_movement_system(
         if snake_timer.0.finished {
             let mut last_position = *head_pos;
             let mut segment_entity = head.next_segment;
+
             loop {
                 let segment = segments.get::<SnakeSegment>(segment_entity).unwrap();
                 let mut segment_position = positions.get_mut::<Position>(segment_entity).unwrap();
@@ -138,6 +143,15 @@ pub fn snake_movement_system(
                 Direction::Right => head_pos.x += 1,
                 Direction::Up => head_pos.y += 1,
                 Direction::Down => head_pos.y -= 1,
+            }
+            for (ent, _food, food_pos) in &mut food_positions.iter() {
+                if food_pos == &*head_pos {
+                    spawn_segment(&mut commands, segment_material.0, last_position);
+                    let new_segment = commands.current_entity();
+                    let mut segment = segments.get_mut::<SnakeSegment>(segment_entity).unwrap();
+                    segment.next_segment = new_segment;
+                    commands.despawn(ent);
+                }
             }
         }
     }

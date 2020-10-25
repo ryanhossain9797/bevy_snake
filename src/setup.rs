@@ -10,6 +10,9 @@ pub fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>
     commands.insert_resource(SnakeSegmentMaterial::new(
         materials.add(Color::rgb(0.3, 0.3, 0.3).into()),
     ));
+    commands.insert_resource(FoodMaterial::new(
+        materials.add(Color::rgb(1.0, 0.0, 1.0).into()),
+    ));
 }
 
 pub fn game_setup(

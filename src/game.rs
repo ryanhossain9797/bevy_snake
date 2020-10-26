@@ -2,6 +2,8 @@ use super::*;
 
 use bevy::prelude::*;
 
+pub struct GameOverEvent;
+
 pub fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     commands.spawn(Camera2dComponents::default());
     commands.insert_resource(SnakeHeadMaterial::new(
@@ -26,6 +28,36 @@ pub fn game_setup(
         snake_segment_material.handle(),
         Position { x: 10, y: 10 },
     );
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn game_over_system(
+    mut commands: Commands,
+    mut reader: Local<EventReader<GameOverEvent>>,
+    game_over_events: Res<Events<GameOverEvent>>,
+    segment_material: Res<SnakeSegmentMaterial>,
+    head_material: Res<SnakeHeadMaterial>,
+    mut segments: Query<(Entity, &SnakeSegment)>,
+    mut food: Query<(Entity, &Food)>,
+    mut heads: Query<(Entity, &SnakeHead)>,
+) {
+    if reader.iter(&game_over_events).next().is_some() {
+        for (ent, _segment) in &mut segments.iter() {
+            commands.despawn(ent);
+        }
+        for (ent, _food) in &mut food.iter() {
+            commands.despawn(ent);
+        }
+        for (ent, _head) in &mut heads.iter() {
+            commands.despawn(ent);
+        }
+        spawn_snake(
+            &mut commands,
+            head_material.handle(),
+            segment_material.handle(),
+            Position { x: 10, y: 10 },
+        );
+    }
 }
 
 pub fn size_scaling(windows: Res<Windows>, mut q: Query<(&HeadSize, &mut Sprite)>) {

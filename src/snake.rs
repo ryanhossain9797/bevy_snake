@@ -91,12 +91,14 @@ impl HeadSize {
 }
 
 //Transform component comes from SpriteComponents
+#[allow(clippy::too_many_arguments)]
 pub fn snake_movement_system(
     mut commands: Commands, // to despawn food
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
-    mut segment_material: Res<SnakeSegmentMaterial>, // to spawn a new segment
+    segment_material: Res<SnakeSegmentMaterial>, // to spawn a new segment
     mut snake_timer: ResMut<SnakeMoveTimer>,
+    mut game_over_events: ResMut<Events<GameOverEvent>>, // <--
     mut snake_heads: Query<(&mut SnakeHead, &mut Position)>,
     segments: Query<&mut SnakeSegment>,
     positions: Query<&mut Position>,
@@ -104,6 +106,13 @@ pub fn snake_movement_system(
 ) {
     snake_timer.0.tick(time.delta_seconds);
     for (mut head, mut head_pos) in &mut snake_heads.iter() {
+        if head_pos.x < 0
+            || head_pos.y < 0
+            || head_pos.x as u32 > ARENA_WIDTH
+            || head_pos.y as u32 > ARENA_HEIGHT
+        {
+            game_over_events.send(GameOverEvent);
+        }
         let mut direction = head.direction;
 
         if keyboard_input.pressed(KeyCode::Left) {
@@ -130,6 +139,9 @@ pub fn snake_movement_system(
             loop {
                 let segment = segments.get::<SnakeSegment>(segment_entity).unwrap();
                 let mut segment_position = positions.get_mut::<Position>(segment_entity).unwrap();
+                if *head_pos == *segment_position {
+                    game_over_events.send(GameOverEvent);
+                }
                 std::mem::swap(&mut last_position, &mut *segment_position);
                 if let Some(n) = segment.next_segment {
                     segment_entity = n;
@@ -146,7 +158,7 @@ pub fn snake_movement_system(
             }
             for (ent, _food, food_pos) in &mut food_positions.iter() {
                 if food_pos == &*head_pos {
-                    spawn_segment(&mut commands, segment_material.0, last_position);
+                    spawn_segment(&mut commands, segment_material.handle(), last_position);
                     let new_segment = commands.current_entity();
                     let mut segment = segments.get_mut::<SnakeSegment>(segment_entity).unwrap();
                     segment.next_segment = new_segment;

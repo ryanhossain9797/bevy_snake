@@ -18,9 +18,6 @@ impl FoodMaterial {
     pub fn new(handle: Handle<ColorMaterial>) -> Self {
         Self(handle)
     }
-    pub fn handle(&self) -> Handle<ColorMaterial> {
-        self.0
-    }
 }
 
 pub fn food_spawner_system(

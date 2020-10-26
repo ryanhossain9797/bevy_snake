@@ -1,11 +1,11 @@
 mod food;
-mod setup;
+mod game;
 mod snake;
 
 use bevy::{prelude::*, render::pass::ClearColor};
 
 use food::*;
-use setup::*;
+use game::*;
 use snake::*;
 
 const ARENA_WIDTH: u32 = 60;
@@ -14,7 +14,6 @@ const ARENA_HEIGHT: u32 = 40;
 fn main() {
     App::build()
         .add_resource(WindowDescriptor {
-            // <--
             title: "Snake!".to_string(), // <--
             width: ARENA_WIDTH * 20,     // <--
             height: ARENA_HEIGHT * 20,   // <--
@@ -30,6 +29,8 @@ fn main() {
         .add_system(size_scaling.system())
         .add_system(snake_movement_system.system())
         .add_system(food_spawner_system.system())
+        .add_system(game_over_system.system())
+        .add_event::<GameOverEvent>()
         .add_default_plugins()
         .run();
 }

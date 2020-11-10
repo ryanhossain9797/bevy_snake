@@ -2,6 +2,7 @@ use super::*;
 use bevy::prelude::*;
 pub struct Materials {
     pub head_material: Handle<ColorMaterial>,
+    pub food_material: Handle<ColorMaterial>,
 }
 
 pub fn game_setup(mut commands: Commands, materials: Res<Materials>) {
@@ -14,12 +15,14 @@ pub fn game_setup(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         //Adding the snake head component to the components
-        .with(SnakeHead)
+        .with(SnakeHead {
+            direction: SnakeDirection::Up,
+        })
         .with(Position { x: 3, y: 3 })
         .with(Shape::square(0.8));
 }
 
-pub fn size_scaling(windows: Res<Windows>, mut q: Query<(&Size, &mut Sprite)>) {
+pub fn size_scaling(windows: Res<Windows>, mut q: Query<(&Shape, &mut Sprite)>) {
     let window = windows.get_primary().unwrap();
     for (sprite_size, mut sprite) in q.iter_mut() {
         sprite.size = Vec2::new(

@@ -1,7 +1,12 @@
 use super::*;
 use bevy::prelude::*;
 use std::time::Duration;
-pub struct SnakeHead;
+
+pub struct SnakeMoveTimer(pub Timer);
+
+pub struct SnakeHead {
+    pub direction: SnakeDirection,
+}
 
 #[derive(Default, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Position {
@@ -23,20 +28,67 @@ impl Shape {
     }
 }
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum SnakeDirection {
+    Left,
+    Up,
+    Right,
+    Down,
+}
+
+impl SnakeDirection {
+    fn opposite(self) -> Self {
+        match self {
+            Self::Left => Self::Right,
+            Self::Right => Self::Left,
+            Self::Up => Self::Down,
+            Self::Down => Self::Up,
+        }
+    }
+}
+
+pub fn snake_timer(time: Res<Time>, mut snake_timer: ResMut<SnakeMoveTimer>) {
+    snake_timer.0.tick(time.delta_seconds);
+}
+
 pub fn snake_movement(
     keyboard_input: Res<Input<KeyCode>>,
-    mut head_positions: Query<With<SnakeHead, &mut Position>>,
+    snake_timer: ResMut<SnakeMoveTimer>,
+    mut heads: Query<(Entity, &mut SnakeHead)>,
+    mut positions: Query<&mut Position>,
 ) {
-    for mut pos in head_positions.iter_mut() {
-        keyboard_input
-            .get_pressed()
-            .into_iter()
-            .for_each(|keycode| match keycode {
-                KeyCode::Left => pos.x -= 1,
-                KeyCode::Right => pos.x += 1,
-                KeyCode::Up => pos.y += 1,
-                KeyCode::Down => pos.y -= 1,
-                _ => {}
-            });
+    if let Some((head_entity, mut head)) = heads.iter_mut().next() {
+        let mut head_pos = positions.get_mut(head_entity).unwrap();
+        let direction: SnakeDirection = if keyboard_input.pressed(KeyCode::Left) {
+            SnakeDirection::Left
+        } else if keyboard_input.pressed(KeyCode::Down) {
+            SnakeDirection::Down
+        } else if keyboard_input.pressed(KeyCode::Up) {
+            SnakeDirection::Up
+        } else if keyboard_input.pressed(KeyCode::Right) {
+            SnakeDirection::Right
+        } else {
+            head.direction
+        };
+        if direction != head.direction.opposite() {
+            head.direction = direction;
+        }
+        if !snake_timer.0.finished {
+            return;
+        }
+        match &head.direction {
+            SnakeDirection::Left => {
+                head_pos.x -= 1;
+            }
+            SnakeDirection::Right => {
+                head_pos.x += 1;
+            }
+            SnakeDirection::Up => {
+                head_pos.y += 1;
+            }
+            SnakeDirection::Down => {
+                head_pos.y -= 1;
+            }
+        }
     }
 }

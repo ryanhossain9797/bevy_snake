@@ -9,7 +9,7 @@ pub struct FoodSpawnTimer(Timer);
 
 impl Default for FoodSpawnTimer {
     fn default() -> Self {
-        Self(Timer::new(Duration::from_millis(1000), true))
+        Self(Timer::new(Duration::from_millis(5000), true))
     }
 }
 

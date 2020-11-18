@@ -2,24 +2,54 @@ use super::*;
 use bevy::prelude::*;
 pub struct Materials {
     pub head_material: Handle<ColorMaterial>,
+    pub segment_material: Handle<ColorMaterial>,
     pub food_material: Handle<ColorMaterial>,
 }
 
-pub fn game_setup(mut commands: Commands, materials: Res<Materials>) {
-    commands
-        .spawn(SpriteComponents {
-            //SpriteComponents is a Bundle of components.
-            //For SpriteComponents, that means we get Transform, Sprite, Mesh, Draw, Rotation, Scale, etc.
-            material: materials.head_material.clone(),
-            sprite: Sprite::new(Vec2::new(10.0, 10.0)),
-            ..Default::default()
-        })
-        //Adding the snake head component to the components
-        .with(SnakeHead {
-            direction: SnakeDirection::Up,
-        })
-        .with(Position { x: 3, y: 3 })
-        .with(Shape::square(0.8));
+pub struct GameOverEvent;
+
+pub fn spawn_snake(
+    mut commands: Commands,
+    materials: Res<Materials>,
+    mut segments: ResMut<SnakeSegments>,
+) {
+    segments.0 = vec![
+        commands
+            .spawn(SpriteComponents {
+                material: materials.head_material.clone(),
+                ..Default::default()
+            })
+            .with(SnakeHead {
+                direction: SnakeDirection::Up,
+            })
+            .with(SnakeSegment)
+            .with(Position { x: 3, y: 3 })
+            .with(Shape::square(0.8))
+            .current_entity()
+            .unwrap(),
+        spawn_segment(
+            &mut commands,
+            &materials.segment_material,
+            Position { x: 3, y: 2 },
+        ),
+    ];
+}
+
+pub fn game_over(
+    mut commands: Commands,
+    mut reader: Local<EventReader<GameOverEvent>>,
+    game_over_events: Res<Events<GameOverEvent>>,
+    materials: Res<Materials>,
+    segments_res: ResMut<SnakeSegments>,
+    food: Query<With<Food, Entity>>,
+    segments: Query<With<SnakeSegment, Entity>>,
+) {
+    if reader.iter(&game_over_events).next().is_some() {
+        for ent in food.iter().chain(segments.iter()) {
+            commands.despawn(ent);
+        }
+        spawn_snake(commands, materials, segments_res);
+    }
 }
 
 pub fn size_scaling(windows: Res<Windows>, mut q: Query<(&Shape, &mut Sprite)>) {
